@@ -35,9 +35,9 @@ OBJ_NAMES =$(patsubst %.c,%.o,$(SRC_NAMES))
 # common compile options
 INCLUDEDIR := -I$(SRC_DIR_1) -I$(SRC_DIR_MATH) -I$(SRC_DIR_MATH_LSQ) -I$(SRC_DIR_GLO_IFB_PACK) -I$(SRC_DIR_TDPD_PACK)
 OPTIONS	   = -DTRACE -DENAGLO -DENAQZS -DENAGAL -DENACMP -DENAIRN -DNFREQ=3 -DSVR_REUSEADDR
-CFLAGS_CMN = -std=c99 -pedantic -Wall -Werror -fpic -fno-strict-overflow -Wno-error=unused-but-set-variable \
+CFLAGS_CMN = -std=c99 -pedantic -Wall -Werror -fpic -fno-strict-overflow  \
 					-Wno-error=unused-function -Wno-error=unused-result $(INCLUDEDIR) $(OPTIONS)
-LDLIBS	   = lib/iers/gcc/iers.a -lm -lrt -lpthread
+LDLIBS	   = lib/iers/gcc/iers.a -lm  -lpthread
 LDFLAGS    = -shared
 TARGET_LIB = librtk.so
 
@@ -45,6 +45,9 @@ TARGET_LIB = librtk.so
 REL_OPTS    = -O3 -DNDEBUG
 PREREL_OPTS = -O3
 DBG_OPTS    = -O0 -g
+
+CFLAGS_CMN += -Wno-uninitialized -Wno-missing-braces -Wno-constant-logical-operand -Wno-pointer-bool-conversion
+OPTIONS += -D_DARWIN_C_SOURCE
 
 ####################################################################
 ##### release / prerelease / debug targets
@@ -160,7 +163,7 @@ LINUX_DEPLOY_QT = $(realpath squashfs-root/usr/bin/linuxdeployqt)
 qt_apps: qmake make_qt
 
 qmake:
-	qmake RTKLib.pro -spec linux-g++ -o QtMakefile
+	qmake RTKLib.pro -spec macx-clang -o QtMakefile
 
 make_qt: qmake
 	make -f QtMakefile -j `nproc`

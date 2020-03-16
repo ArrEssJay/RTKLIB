@@ -11,17 +11,17 @@ OPTS    = -DTRACE -DENAGLO -DENAQZS -DENAGAL -DENACMP -DENAIRN -DNFREQ=3
 CFLAGS  = -Wall -O3 -ansi -pedantic -Wno-unused-variable -I$(SRC) $(OPTS) -g
 LDLIBS  = -lm -lrt
 
-#CFLAGS  = -Wall -O3 -ansi -pedantic -Wno-unused-but-set-variable -I$(SRC) -DLAPACK $(OPTS)
+#CFLAGS  = -Wall -O3 -ansi -pedantic  -I$(SRC) -DLAPACK $(OPTS)
 #LDLIBS  = -lm -lrt -llapack -lblas
 
 # for gprof
-#CFLAGS  = -Wall -O3 -ansi -pedantic -Wno-unused-but-set-variable -I$(SRC) -DLAPACK $(OPTS) -pg
+#CFLAGS  = -Wall -O3 -ansi -pedantic  -I$(SRC) -DLAPACK $(OPTS) -pg
 #LDLIBS  = -lm -lrt -llapack -lblas -pg
 
 # for mkl
 ##MKLDIR  = /opt/intel/mkl
 #MKLDIR  = /proj/madoca/lib/mkl
-#CFLAGS  = -O3 -ansi -pedantic -Wno-unused-but-set-variable -I$(SRC) $(OPTS) -DMKL
+#CFLAGS  = -O3 -ansi -pedantic  -I$(SRC) $(OPTS) -DMKL
 #LDLIBS  = -L$(MKLDIR)/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_gnu_thread -lpthread -lgomp -lm -lrt
 
 all        : rnx2rtkp

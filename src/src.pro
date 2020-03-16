@@ -16,9 +16,17 @@ INCLUDEPATH += math/ math/lsq/ extensions/glo_ifb/ extensions/tdiff_phases/
 DESTDIR = $${OUT_PWD}
 
 QMAKE_CFLAGS += -std=c99 -pedantic -Wall -Werror -fpic -fno-strict-overflow \
-    -Wno-error=unused-but-set-variable -Wno-error=unused-function \
+     -Wno-error=unused-function \
     -Wno-error=unused-result -Wno-error=pointer-to-int-cast \
     -Wno-error=unused-variable -Wno-error=int-conversion
+
+        message($$QMAKE_CC)
+
+#equals(QMAKE_CC, clang) {
+    QMAKE_CFLAGS += -Wno-uninitialized -Wno-missing-braces -Wno-constant-logical-operand
+    DEFINES += _DARWIN_C_SOURCE
+#}
+
 QMAKE_CFLAGS_DEBUG = -O0 -g
 QMAKE_CFLAGS_RELEASE = -O3
 QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO = -O3 -g
