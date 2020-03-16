@@ -49,6 +49,9 @@ DBG_OPTS    = -O0 -g
 CFLAGS_CMN += -Wno-uninitialized -Wno-missing-braces -Wno-constant-logical-operand -Wno-pointer-bool-conversion
 OPTIONS += -D_DARWIN_C_SOURCE
 
+
+QMAKE = /usr/local/bin/qmake
+
 ####################################################################
 ##### release / prerelease / debug targets
 
@@ -166,7 +169,7 @@ qmake:
 	qmake RTKLib.pro -spec macx-clang -o QtMakefile
 
 make_qt: qmake
-	make -f QtMakefile -j `nproc`
+	make -f QtMakefile -j `sysctl -n hw.logicalcpu`
 
 clean_qt:
 	make -f QtMakefile clean -j `nproc`
