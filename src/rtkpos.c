@@ -1755,9 +1755,9 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa,int gps,int glo,in
         trace(3,"N(1)="); tracemat(3,b   ,1,nb,10,3);
         trace(3,"N(2)="); tracemat(3,b+nb,1,nb,10,3);
 
-        rtk->sol.fRate = fR;
         //if (rtk->sol.ratio>999.9) rtk->sol.ratio=999.9f;
-        double ratio = s[0] / s[1];
+        //Note though mu is s0/s1, 1/mu is more commonly referred to.
+        double ratio = s[1] / s[0];
 
         /* determine ratio test threshold by failure rate */
         trace(3, "Failure Rate=%f Ratio=%f\n", fR, ratio);
@@ -1765,30 +1765,26 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa,int gps,int glo,in
         /* Currently hard-coding 0.1% failure rate & lookup table */
 
         double p0 = 0.001; /* 0.1% failure rate */
-        double fRminus = 1 - fR;
         double mu;
-        bool frrtOk = true;
-        if (fRminus > p0)
+        if (fR > p0)
         {
-            mu = ratioinv(fRminus, nb);
-            rtk->sol.mu = mu;
-            trace(3, "FRRT mu=%f\n", mu);
+            mu = 1 / ratioinv(fR, nb);
+            trace(3, "FFRT ratio mu=%f\n", mu);
         }
         else
         {
-            trace(3, "FRRT Failed %f < %f\n", fRminus, p0);
-            frrtOk=false;
+            trace(3, "Faiure rate low. Set mu = 1 (%f < %f)\n", fR, p0);
+            mu = 1;
         }
         rtk->sol.mu = mu;
-
         rtk->sol.ratio = ratio;
+        rtk->sol.fRate = fR;
+        //Also set opt->thresar[0] to mu for other tests that expect a fixed value
+        rtk->opt.thresar[0] = mu;
 
-            // Use failure-rate-determined ratio if AR ratio not defined
-            // else use fixed ratio
-
-            //double threshold = opt->thresar[0] < 0 ? mu : opt->thresar[0];
-
-        if ((ratio > mu) && (frrtOk))
+        // double threshold = opt->thresar[0] < 0 ? mu : opt->thresar[0];
+        // ratio is defined as s[1]/s[0] making this is an acceptance test
+        if (ratio > mu)
         {
 
             /* init non phase-bias states and covariances with float solution values */

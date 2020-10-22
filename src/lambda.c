@@ -211,14 +211,16 @@ extern int lambda(int n, int m, const double *a, const double *Q, double *F,
 
             info=solve("T",Z,E,n,m,F); /* F=Z'\E */
 
-            // Calculate failure rate
-            // See Lambda 3
+            // Computes the  success rate given the
+            // diagonal matrix D
             for (int i = 0; i < n; i++)
             {
                 double element = 2 * normalCDF(0.5 / sqrt(D[i])) - 1;
                 if (i == 0) *fR = element;
                 else *fR *= element;
             }
+            //Pf = 1 - Ps
+            *fR = 1 - *fR;
         }
     }
 
