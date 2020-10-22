@@ -13,10 +13,11 @@
 * version : $Revision: 1.1 $ $Date: 2008/07/17 21:48:06 $
 * history : 2007/01/13 1.0 new
 *           2015/05/31 1.1 add api lambda_reduction(), lambda_search()
+
 *-----------------------------------------------------------------------------*/
 #include "rtklib.h"
-
-
+#include "ratiotab.h"
+#include <float.h>
 /* constants/macros ----------------------------------------------------------*/
 
 #define LOOPMAX     10000           /* maximum count of search loop */
@@ -25,12 +26,17 @@
 #define ROUND(x)    (floor((x)+0.5))
 #define SWAP(x,y)   do {double tmp_; tmp_=x; x=y; y=tmp_;} while (0)
 
+static double normalCDF(double value)
+{
+    return 0.5 * erfc(-value * M_SQRT1_2);
+}
+
 /* LD factorization (Q=L'*diag(D)*L) -----------------------------------------*/
 static int LD(int n, const double *Q, double *L, double *D)
 {
     int i,j,k,info=0;
     double a,*A=mat(n,n);
-    
+
     memcpy(A,Q,sizeof(double)*n*n);
     for (i=n-1;i>=0;i--) {
         if ((D[i]=A[i+i*n])<=0.0) {info=-1; break;}
@@ -47,7 +53,7 @@ static int LD(int n, const double *Q, double *L, double *D)
 static void gauss(int n, double *L, double *Z, int i, int j)
 {
     int k,mu;
-    
+
     if ((mu=(int)ROUND(L[i+j*n]))!=0) {
         for (k=i;k<n;k++) L[k+n*j]-=(double)mu*L[k+i*n];
         for (k=0;k<n;k++) Z[k+n*j]-=(double)mu*Z[k+i*n];
@@ -58,7 +64,7 @@ static void perm(int n, double *L, double *D, int j, double del, double *Z)
 {
     int k;
     double eta,lam,a0,a1;
-    
+
     eta=D[j]/del;
     lam=D[j+1]*L[j+1+j*n]/del;
     D[j]=eta*D[j+1]; D[j+1]=del;
@@ -76,7 +82,7 @@ static void reduction(int n, double *L, double *D, double *Z)
 {
     int i,j,k;
     double del;
-    
+
     j=n-2; k=n-2;
     while (j>=0) {
         if (j<=k) for (i=j+1;i<n;i++) gauss(n,L,Z,i,j);
@@ -91,7 +97,7 @@ static void reduction(int n, double *L, double *D, double *Z)
 /* modified lambda (mlambda) search (ref. [2]) -------------------------------
 * args   : n      I  number of float parameters
 *          m      I  number of fixed solution
-		   L,D    I  transformed covariance matrix 
+		   L,D    I  transformed covariance matrix
            zs     I  transformed double-diff phase biases
 		   zn     O  fixed solutions
 		   s      O  sum of residuals for fixed solutions					*/
@@ -101,7 +107,7 @@ static int search(int n, int m, const double *L, const double *D,
     int i,j,k,c,nn=0,imax=0;
     double newdist,maxdist=1E99,y;
     double *S=zeros(n,n),*dist=mat(n,1),*zb=mat(n,1),*z=mat(n,1),*step=mat(n,1);
-    
+
     k=n-1; dist[k]=0.0;
     zb[k]=zs[k];
     z[k]=ROUND(zb[k]);
@@ -159,7 +165,7 @@ static int search(int n, int m, const double *L, const double *D,
         }
     }
     free(S); free(dist); free(zb); free(z); free(step);
-    
+
     if (c>=LOOPMAX) {
         fprintf(stderr,"%s : search loop count overflow\n",__FILE__);
         return -1;
@@ -175,33 +181,47 @@ static int search(int n, int m, const double *L, const double *D,
 *          double *Q     I  covariance matrix of float parameters (n x n)
 *          double *F     O  fixed solutions (n x m)
 *          double *s     O  sum of squared residulas of fixed solutions (1 x m)
+*          double *fR    O  failure rate
+
 * return : status (0:ok,other:error)
 * notes  : matrix stored by column-major order (fortran convension)
 *-----------------------------------------------------------------------------*/
 extern int lambda(int n, int m, const double *a, const double *Q, double *F,
-                  double *s)
+                  double *s, double *fR)
 {
     int info;
     double *L,*D,*Z,*z,*E;
-    
+
     if (n<=0||m<=0) return -1;
     L=zeros(n,n); D=mat(n,1); Z=eye(n); z=mat(n,1); E=mat(n,m);
-    
+
+
+
     /* LD (lower diaganol) factorization (Q=L'*diag(D)*L) */
     if (!(info=LD(n,Q,L,D))) {
-        
+
         /* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) */
         reduction(n,L,D,Z);
         matmul("TN",n,1,n,1.0,Z,a,0.0,z); /* z=Z'*a */
-        
-        /* mlambda search 
+
+        /* mlambda search
 		    z = transformed double-diff phase biases
 			L,D = transformed covariance matrix */
         if (!(info=search(n,m,L,D,z,E,s))) {  /* returns 0 if no error */
-            
+
             info=solve("T",Z,E,n,m,F); /* F=Z'\E */
+
+            // Calculate failure rate
+            // See Lambda 3
+            for (int i = 0; i < n; i++)
+            {
+                double element = 2 * normalCDF(0.5 / sqrt(D[i])) - 1;
+                if (i == 0) *fR = element;
+                else *fR *= element;
+            }
         }
     }
+
     free(L); free(D); free(Z); free(z); free(E);
     return info;
 }
@@ -216,11 +236,11 @@ extern int lambda_reduction(int n, const double *Q, double *Z)
 {
     double *L,*D;
     int i,j,info;
-    
+
     if (n<=0) return -1;
-    
+
     L=zeros(n,n); D=mat(n,1);
-    
+
     for (i=0;i<n;i++) for (j=0;j<n;j++) {
         Z[i+j*n]=i==j?1.0:0.0;
     }
@@ -231,7 +251,7 @@ extern int lambda_reduction(int n, const double *Q, double *Z)
     }
     /* lambda reduction */
     reduction(n,L,D,Z);
-     
+
     free(L); free(D);
     return 0;
 }
@@ -250,11 +270,11 @@ extern int lambda_search(int n, int m, const double *a, const double *Q,
 {
     double *L,*D;
     int info;
-    
+
     if (n<=0||m<=0) return -1;
-    
+
     L=zeros(n,n); D=mat(n,1);
-    
+
     /* LD factorization */
     if ((info=LD(n,Q,L,D))) {
         free(L); free(D);
@@ -262,7 +282,50 @@ extern int lambda_search(int n, int m, const double *a, const double *Q,
     }
     /* mlambda search */
     info=search(n,m,L,D,a,F,s);
-    
+
     free(L); free(D);
     return info;
 }
+
+// ratioinv
+// Get threshold value for Fixed Failure - rate Ratio Test
+// mu = ratioinv(Pf_FIX, Pf_ILS, n)
+// #fRate  : ILS failure rate (0-1)
+// #n : Number of float ambiguities
+
+extern double ratioinv(double fRate, int n)
+{
+    // Select correct table
+    // table 1 -> 0.1% failure rate
+    // table 10 -> 1% failure rate
+
+    //transposed so that
+    //rows are n
+    //coluns are pf_ILS 0-1
+
+    // limit n to max number of ambiguities
+    if (n > t1MaxN) n = t1MaxN;
+
+    //input index selection at n=0 table
+    double dist = DBL_MAX;
+    int idx;
+    int i;
+    for (i = 0; i < t1IntervalCount; i++) {
+        double newDist = fRate - table1[0][i];
+        if (newDist > 0 && newDist < dist) {
+            dist = newDist;
+            idx = i;
+        }
+    }
+
+    // Bilinear interpolatio
+    double x1 = table1[0][idx];
+    double x2 = table1[0][idx+1];
+    double fx1 = table1[n][idx];
+    double fx2 = table1[n][idx+1];
+
+    double mu = (fRate - x1) / (x2 - x1) * fx2 + (x2 - fRate) / (x2 - x1) * fx1;
+
+    return mu;
+}
+
