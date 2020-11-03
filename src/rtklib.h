@@ -67,9 +67,9 @@ extern "C" {
 
 /* constants -----------------------------------------------------------------*/
 
-#define VER_RTKLIB  "2.4.3 Emlid"       /* library version */
+#define VER_RTKLIB  "2.4.3 - DEV"       /* library version */
 
-#define PATCH_LEVEL "b33"               /* patch level */
+#define PATCH_LEVEL "b33 DEV"               /* patch level */
 
 #define COPYRIGHT_RTKLIB \
             "Copyright (C) 2007-2019 T.Takasu\nAll rights reserved."
@@ -540,6 +540,10 @@ extern "C" {
 #define CSMOOTHOPT_MEAS_DOMAIN 1
 #define CSMOOTHOPT_POS_DOMAIN  2
 
+/* Note that ISBs are not implemented, which if using different vendor receivers
+may need to be compensated for */
+#define COUPLING_LOOSE         0        /* Loose: ref sat per system. */
+#define COUPLING_TIGHT         1        /* Tight: One ref sat. */
 #define P2_5        0.03125             /* 2^-5 */
 #define P2_6        0.015625            /* 2^-6 */
 #define P2_11       4.882812500000000E-04 /* 2^-11 */
@@ -1034,8 +1038,8 @@ typedef struct {        /* solution type */
     unsigned char ns;   /* number of valid satellites */
     float age;          /* age of differential (s) */
     float ratio;        /* AR ratio factor for valiation */
-    double fRate;        /* AR failure rate */
-    double mu;           /* FR-RT determined ratio */
+    double ILSPf;       /* AR ILS failure probability */
+    double ratioMin;     /* AR threshold */
     float prev_ratio1;   /* previous initial AR ratio factor for validation */
     float prev_ratio2;   /* previous final AR ratio factor for validation */
     float thres;        /* AR ratio threshold for valiation */
@@ -1201,6 +1205,7 @@ typedef struct {        /* processing options type */
 
     int    base_multi_epoch; /* is base data from different epochs allowed? (0:off,1:on) */
 
+    int    coupling_mode;      /*  RTK tight or loose inter-system coupling */
     int    residual_mode;         /* on/off */
     int    residual_maxiter;      /* max number of iterations */
     double residual_reset_fix;    /* carrier-phase residual threshold to reset phase-bias when solution status is FIX (m) */

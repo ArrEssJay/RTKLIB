@@ -61,6 +61,7 @@ static char snrmask_[NFREQ][1024];
 #define TIDEOPT "0:off,1:on,2:otl"
 #define PHWOPT  "0:off,1:on,2:precise"
 #define CSMOOTHOPT "0:off,1:meas-domain,2:pos-domain"
+#define COUPlEOPT  "0:loose,1:tight"
 
 EXPORT opt_t sysopts[]={
     {"pos1-posmode",    3,  (void *)&prcopt_.mode,       MODOPT },
@@ -128,7 +129,7 @@ EXPORT opt_t sysopts[]={
     {"resid-reset_float",1, (void *)&prcopt_.residual_reset_float,"m"},
     {"resid-block_fix_sat",1,(void *)&prcopt_.residual_block_fix_sat, "m"},
     
-    {"out-solformat",   3,  (void *)&solopt_.posf,       SOLOPT },
+    {"coupling-mode", 3, (void *)&prcopt_.coupling_mode, COUPlEOPT},
     {"out-outhead",     3,  (void *)&solopt_.outhead,    SWTOPT },
     {"out-outopt",      3,  (void *)&solopt_.outopt,     SWTOPT },
     {"out-outvel",      3,  (void *)&solopt_.outvel,     SWTOPT },
